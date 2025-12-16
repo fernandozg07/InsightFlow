@@ -2,8 +2,18 @@ import { GoogleGenAI } from "@google/genai";
 import { AnalysisResult, FileData, MessageRole } from "../types";
 import { DASHBOARD_PROMPT, DASHBOARD_SYSTEM_INSTRUCTION, CHAT_SYSTEM_INSTRUCTION } from "../constants";
 
+// Helper to safely get API Key without crashing if 'process' is undefined
 const getAIClient = () => {
-  const apiKey = process.env.API_KEY || "";
+  let apiKey = "";
+  try {
+    // Check if process exists before accessing env to avoid ReferenceError in some browsers
+    if (typeof process !== 'undefined' && process.env) {
+      apiKey = process.env.API_KEY || "";
+    }
+  } catch (e) {
+    console.warn("Ambiente 'process' não detectado. Verifique a configuração do bundler.");
+  }
+
   if (!apiKey) {
     console.warn("DEBUG: API_KEY missing.");
     return null;
