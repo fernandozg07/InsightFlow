@@ -6,6 +6,33 @@
     <title>InsightFlow AI - Strategic Data Intelligence</title>
     <script src="https://cdn.tailwindcss.com"></script>
     <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+    
+    <!-- CRITICAL: Polyfill process for libs that expect Node environment -->
+    <script>
+      window.process = { env: { NODE_ENV: 'development' } };
+      
+      // Function to show critical errors if React fails to mount
+      function showBootError(title, detail) {
+        const root = document.getElementById('root');
+        if (root) {
+            root.innerHTML = `
+                <div class="flex flex-col items-center justify-center h-full w-full bg-slate-950 text-white p-8 text-center">
+                    <div class="p-4 bg-red-500/10 rounded-full mb-4 animate-bounce">
+                        <svg xmlns="http://www.w3.org/2000/svg" width="48" height="48" viewBox="0 0 24 24" fill="none" stroke="#ef4444" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><line x1="12" x2="12" y1="8" y2="12"/><line x1="12" x2="12.01" y1="16" y2="16"/></svg>
+                    </div>
+                    <h2 class="text-2xl font-bold mb-2">${title}</h2>
+                    <p class="text-slate-400 max-w-md mb-6 leading-relaxed">${detail}</p>
+                    <div class="flex gap-4">
+                        <button onclick="window.location.reload()" class="px-6 py-2 bg-indigo-600 rounded-lg hover:bg-indigo-500 transition-colors font-semibold shadow-lg shadow-indigo-600/20">Recarregar Página</button>
+                    </div>
+                </div>
+            `;
+        }
+      }
+      
+      // Removed the global 'error' listener that was causing false positives.
+    </script>
+
     <style>
       body {
         font-family: 'Plus Jakarta Sans', sans-serif;
@@ -86,12 +113,14 @@
   <script type="importmap">
 {
   "imports": {
-    "recharts": "https://esm.sh/recharts@^3.6.0",
-    "@google/genai": "https://esm.sh/@google/genai@^1.33.0",
-    "react/": "https://esm.sh/react@^19.2.3/",
-    "react": "https://esm.sh/react@^19.2.3",
-    "react-dom/": "https://esm.sh/react-dom@^19.2.3/",
-    "lucide-react": "https://esm.sh/lucide-react@^0.561.0",
+    "recharts": "https://esm.sh/recharts@2.12.7?external=react,react-dom",
+    "@google/genai": "https://esm.sh/@google/genai@0.1.2",
+    "react": "https://esm.sh/react@18.2.0",
+    "react/": "https://esm.sh/react@18.2.0/",
+    "react-dom": "https://esm.sh/react-dom@18.2.0",
+    "react-dom/": "https://esm.sh/react-dom@18.2.0/",
+    "react-dom/client": "https://esm.sh/react-dom@18.2.0/client",
+    "lucide-react": "https://esm.sh/lucide-react@0.454.0?external=react",
     "xlsx": "https://esm.sh/xlsx@0.18.5",
     "pdfjs-dist": "https://esm.sh/pdfjs-dist@3.11.174",
     "html2canvas": "https://esm.sh/html2canvas@1.4.1",
@@ -104,6 +133,29 @@
     <div id="root" class="h-screen w-screen bg-slate-950 text-white relative selection:bg-indigo-500/30">
         <div class="absolute inset-0 bg-grid z-0 pointer-events-none"></div>
         <div class="absolute inset-0 bg-ambient z-0 pointer-events-none"></div>
+        
+        <!-- Loading State before React Mounts -->
+        <div class="relative z-10 flex h-full w-full items-center justify-center">
+            <div class="flex flex-col items-center gap-4">
+                <div class="h-12 w-12 animate-spin rounded-full border-4 border-indigo-500 border-t-transparent"></div>
+                <p id="loading-text" class="text-sm font-medium text-indigo-300/80 animate-pulse">Carregando InsightFlow...</p>
+                <p class="text-xs text-slate-600 mt-2">Aguardando inicialização do ambiente...</p>
+            </div>
+        </div>
     </div>
+    
+    <!-- Entry Point Script -->
+    <script type="module" src="/index.tsx"></script>
+    
+    <!-- Safety Timeout: If React doesn't take over in 10s, show error -->
+    <script>
+        setTimeout(() => {
+            const root = document.getElementById('root');
+            // If the loader is still present (meaning React didn't clear it)
+            if (document.getElementById('loading-text')) {
+                showBootError("Tempo Limite Excedido", "O sistema está demorando para iniciar. Verifique sua conexão com a internet ou recarregue a página.");
+            }
+        }, 10000);
+    </script>
   </body>
 </html>

@@ -1,10 +1,17 @@
 import * as XLSX from 'xlsx';
 import * as pdfjsLib from 'pdfjs-dist';
 
-// Handle potential ESM interop issues with pdfjs-dist
-const pdfJs = (pdfjsLib as any).default || pdfjsLib;
-
-let workerSetupPromise: Promise<void> | null = null;
+// Safe PDFJS initialization
+let pdfJs: any;
+try {
+    pdfJs = (pdfjsLib as any).default || pdfjsLib;
+    // Set worker correctly for ESM usage
+    if (pdfJs && pdfJs.GlobalWorkerOptions) {
+        pdfJs.GlobalWorkerOptions.workerSrc = `https://esm.sh/pdfjs-dist@3.11.174/build/pdf.worker.min.js`;
+    }
+} catch (e) {
+    console.warn("PDF JS Init warning:", e);
+}
 
 // Helper to fetch with timeout
 const fetchWithTimeout = async (resource: string, options: RequestInit = {}, timeout = 5000) => {
@@ -19,36 +26,6 @@ const fetchWithTimeout = async (resource: string, options: RequestInit = {}, tim
   } finally {
     clearTimeout(id);
   }
-};
-
-const setupPdfWorker = () => {
-  if (workerSetupPromise) return workerSetupPromise;
-
-  workerSetupPromise = (async () => {
-    // Return if already set
-    if (pdfJs.GlobalWorkerOptions.workerSrc) return;
-
-    try {
-      // Try to fetch the worker code to create a local Blob (bypasses CORS)
-      const workerUrl = "https://unpkg.com/pdfjs-dist@3.11.174/build/pdf.worker.min.js";
-      
-      const response = await fetchWithTimeout(workerUrl, {}, 3000); // 3s timeout for worker download
-      
-      if (!response.ok) throw new Error("Worker download failed");
-      
-      const workerScript = await response.text();
-      const blob = new Blob([workerScript], { type: "text/javascript" });
-      const blobUrl = URL.createObjectURL(blob);
-      
-      pdfJs.GlobalWorkerOptions.workerSrc = blobUrl;
-    } catch (error) {
-      console.warn("Falling back to direct URL for PDF Worker (Blob failed or timed out):", error);
-      // Fallback: Set URL directly. 
-      pdfJs.GlobalWorkerOptions.workerSrc = "https://unpkg.com/pdfjs-dist@3.11.174/build/pdf.worker.min.js";
-    }
-  })();
-
-  return workerSetupPromise;
 };
 
 export const readFileAsBase64 = (file: File): Promise<string> => {
@@ -106,14 +83,7 @@ export const readExcelAsText = async (file: File): Promise<string> => {
 };
 
 export const readPdfAsText = async (file: File): Promise<string> => {
-  try {
-     await Promise.race([
-        setupPdfWorker(),
-        new Promise((_, reject) => setTimeout(() => reject(new Error("Timeout worker setup")), 4000))
-     ]);
-  } catch (e) {
-      console.warn("PDF Worker Setup issue, attempting read anyway...", e);
-  }
+  if (!pdfJs) return "[ERRO: PDF.js library not loaded]";
 
   try {
     const arrayBuffer = await file.arrayBuffer();

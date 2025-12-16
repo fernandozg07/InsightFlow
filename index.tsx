@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { ReactNode, Component } from 'react';
 import ReactDOM from 'react-dom/client';
 import App from './App';
 import { AlertCircle } from 'lucide-react';
@@ -9,7 +9,7 @@ if (!rootElement) {
 }
 
 interface ErrorBoundaryProps {
-  children: React.ReactNode;
+  children?: ReactNode;
 }
 
 interface ErrorBoundaryState {
@@ -17,7 +17,11 @@ interface ErrorBoundaryState {
   error: Error | null;
 }
 
-class ErrorBoundary extends React.Component<ErrorBoundaryProps, ErrorBoundaryState> {
+class ErrorBoundary extends Component<ErrorBoundaryProps, ErrorBoundaryState> {
+  // Explicitly declare state and props to fix TypeScript errors
+  public state: ErrorBoundaryState;
+  public readonly props!: Readonly<ErrorBoundaryProps>;
+
   constructor(props: ErrorBoundaryProps) {
     super(props);
     this.state = { hasError: false, error: null };
